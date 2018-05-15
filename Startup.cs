@@ -33,6 +33,30 @@ namespace dotnetcore_demo
                 app.UseDeveloperExceptionPage();
             }
 
+            registerAppLifeTime(appLifeTime);
+
+            # region Example is here.
+            // middlewareExample1(app);
+            // middlewareExample2(app);
+
+            // 註冊middleware
+            // app.UseMiddleware<FirstMiddleware>();
+
+            // 使用 extensions 方式註冊 middleware
+            app.UseFirstMiddleware();
+            # endregion
+
+
+            app.Run(async (context) =>
+            {
+                await context.Response.WriteAsync("Hello World! \r\n");
+            });
+
+            Program.Output("Configure - Calling");
+        }
+
+        public void registerAppLifeTime(IApplicationLifetime appLifeTime)
+        {
             appLifeTime.ApplicationStarted.Register(() =>
             {
                 Program.Output("ApplicationStarted - Started");
@@ -47,20 +71,72 @@ namespace dotnetcore_demo
             {
                 Program.Output("ApplicationStarted - Stopped");
             });
+        }
 
-            app.Run(async (context) =>
+        /*
+         * example for app.Run() & app.Use()
+         * Use(): Middleware 的註冊方式是在 Startup.cs 的 Configure 對 IApplicationBuilder 使用 Use 方法註冊。
+         * Run(): 是 Middleware 的最後一個行為，就是最末端的 Action。
+         * 它不像 Use 能串聯其他 Middleware，但 Run 還是能完整的使用 Request 及 Response。
+         */
+        public void middlewareExample1(IApplicationBuilder app)
+        {
+            app.Use(async (context, next) =>
             {
-                await context.Response.WriteAsync("Hello World!");
+                await context.Response.WriteAsync("First Middleware in. \r\n");
+                await next.Invoke();
+                await context.Response.WriteAsync("First Middleware out. \r\n");
             });
 
-            new Thread(new ThreadStart(() =>
+            app.Use(async (context, next) =>
             {
-                Thread.Sleep(5 * 1000);
-                Program.Output("Trigger stop WebHost");
-                appLifeTime.StopApplication();
-            })).Start();
+                await context.Response.WriteAsync("Second Middleware in. \r\n");
 
-            Program.Output("Configure - Calling");
+                // 水管阻塞，封包不往後送
+                // var condition = false;
+                // if (condition)
+                // {
+                //     await next.Invoke();
+                // }
+                await next.Invoke();
+                await context.Response.WriteAsync("Second Middleware out. \r\n");
+            });
+
+            app.Use(async (context, next) =>
+            {
+                await context.Response.WriteAsync("Third Middleware in. \r\n");
+                await next.Invoke();
+                await context.Response.WriteAsync("Third Middleware out. \r\n");
+            });
+        }
+
+        /*
+         * example for app.Map()
+         * Map(): 是能用來處理一些簡單路由的 Middleware，可依照不同的 URL 指向不同的 Run 及註冊不同的 Use。
+         */
+        public void middlewareExample2(IApplicationBuilder app)
+        {
+            app.Use(async (context, next) =>
+            {
+                await context.Response.WriteAsync("First Middleware in. \r\n");
+                await next.Invoke();
+                await context.Response.WriteAsync("First Middleware out. \r\n");
+            });
+
+            app.Map("/second", mapApp =>
+            {
+                mapApp.Use(async (context, next) =>
+                {
+                    await context.Response.WriteAsync("Second Middleware in. \r\n");
+                    await next.Invoke();
+                    await context.Response.WriteAsync("Second Middleware out. \r\n");
+                });
+
+                mapApp.Run(async context =>
+                {
+                    await context.Response.WriteAsync("Second. \r\n");
+                });
+            });
         }
     }
 }
