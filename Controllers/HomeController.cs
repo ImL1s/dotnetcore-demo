@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace dotnetcore_demo.Controllers
 {
-    [MiddlewareFilter(typeof(FirstMiddleware))]
+    // [MiddlewareFilter(typeof(FirstMiddleware))]
     public class HomeController : Controller
     {
-        [MiddlewareFilter(typeof(SecondMiddleware))]
+        // [MiddlewareFilter(typeof(SecondMiddleware))]
         public IActionResult Index()
         {
             return Content("a");

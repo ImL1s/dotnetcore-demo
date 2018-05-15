@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using dotnetcore_demo.Model;
+using dotnetcore_demo.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -22,12 +24,28 @@ namespace dotnetcore_demo
         public void ConfigureServices(IServiceCollection services)
         {
             Program.Output("ConfigureServices");
+            services.AddMvc();
+
+            # region add single scoped
+            services.AddScoped<ISampleScoped, Sample>();
+            services.AddTransient<ISampleTransient, Sample>();
+            services.AddSingleton<ISampleSingleton, Sample>();
+
+            // Singleton 也可以用以下方法註冊
+            // services.AddSingleton<ISampleSingleton>(new Sample());
+            # endregion
+
+            #region use service to add scoped, transient or singleton
+            services.AddScoped<SampleService, SampleService>();
+            # endregion
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifeTime)
         {
             Program.Output("Configure - Calling");
+            app.UseMvcWithDefaultRoute();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
