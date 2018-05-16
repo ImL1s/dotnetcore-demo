@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 
 namespace dotnetcore_demo
 {
@@ -44,6 +46,35 @@ namespace dotnetcore_demo
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifeTime)
         {
             Program.Output("Configure - Calling");
+
+            # region Static files example is here.
+            // UseDefaultFiles 必須註冊在 UseStaticFiles 之前
+            // 如果先註冊 UseStaticFiles，當 URL 是 / 時，UseStaticFiles 找不到該檔案，就會直接回傳找不到；所以就沒有機會進到 UseDefaultFiles
+            app.UseDefaultFiles();
+
+            // localhost:xxxx/ -> ~/wwwroot/ (UseStaticFiles 預設啟用靜態檔案的目錄是 wwwroot)
+            app.UseStaticFiles();
+
+            // localhost:xxxx/third-party -> ~/node_modules/
+            app.UseStaticFiles(new StaticFileOptions()
+            {
+                FileProvider = new PhysicalFileProvider(
+                     Path.Combine(env.ContentRootPath, @"node_modules")
+                 ),
+                RequestPath = new PathString("/third-party")
+            });
+
+            // 使用 file server 讓client可以看得到目錄
+            app.UseFileServer(new FileServerOptions()
+            {
+                FileProvider = new PhysicalFileProvider(
+                    Path.Combine(env.ContentRootPath, @"bin")
+                ),
+                RequestPath = new PathString("/StaticFiles"),
+                EnableDirectoryBrowsing = true
+            });
+            # endregion
+
             app.UseMvcWithDefaultRoute();
 
             if (env.IsDevelopment())
@@ -53,7 +84,7 @@ namespace dotnetcore_demo
 
             registerAppLifeTime(appLifeTime);
 
-            # region Example is here.
+            # region Middleware example is here.
             // middlewareExample1(app);
             // middlewareExample2(app);
 

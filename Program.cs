@@ -23,8 +23,9 @@ namespace dotnetcore_demo
 
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>()
-                .Build();
+                    .UseWebRoot("public")
+                    .UseStartup<Startup>()
+                    .Build();
 
         public static void Output(string message)
         {
