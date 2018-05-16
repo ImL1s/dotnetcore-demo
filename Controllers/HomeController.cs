@@ -4,9 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace dotnetcore_demo.Controllers
 {
     // [MiddlewareFilter(typeof(FirstMiddleware))]
+    [Route("[controller]")]
     public class HomeController : Controller
     {
         // [MiddlewareFilter(typeof(SecondMiddleware))]
+        // 預設 RouteAttribute 的優先順序高於 Startup 註冊的 MapRoute，所以當使用 [Route] 後，原本的 MapRoute 將不再對 Controller 或 Action 產生作用。
+        [Route("")]
         public IActionResult Index()
         {
             var model = new HomeModel()
@@ -16,7 +19,7 @@ namespace dotnetcore_demo.Controllers
             return View(model);
             // return Content("a");
 
-            // IActionResult 回傳的方式可以有很多種
+            // [IActionResult 回傳的方式可以有很多種]
             // 透過繼承 Controller 後，就可以使用 Controller 的方法:
 
             // [View]
@@ -34,6 +37,12 @@ namespace dotnetcore_demo.Controllers
 
             // [Formatted Response]
             // return Json({DTO instance});
+        }
+
+        [Route("[action]")]
+        public IActionResult About()
+        {
+            return Content("About");
         }
     }
 }

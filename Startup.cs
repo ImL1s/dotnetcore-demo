@@ -9,6 +9,7 @@ using dotnetcore_demo.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
@@ -47,6 +48,11 @@ namespace dotnetcore_demo
         {
             Program.Output("Configure - Calling");
 
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+
             # region Static files example is here.
             // UseDefaultFiles 必須註冊在 UseStaticFiles 之前
             // 如果先註冊 UseStaticFiles，當 URL 是 / 時，UseStaticFiles 找不到該檔案，就會直接回傳找不到；所以就沒有機會進到 UseDefaultFiles
@@ -75,12 +81,55 @@ namespace dotnetcore_demo
             });
             # endregion
 
-            app.UseMvcWithDefaultRoute();
-
-            if (env.IsDevelopment())
+            # region Routing example is here.
+            // [MVC Routing]
+            app.UseMvc(routes1 =>
             {
-                app.UseDeveloperExceptionPage();
-            }
+                routes1.MapRoute(
+                    name: "about",
+                    template: "about",
+                    defaults: new { controller = "Home", action = "About" }
+                );
+
+                routes1.MapRoute(
+                    name: "default",
+                    template: "{controller=Home}/{action=Index}/{id?}"
+                );
+
+                // 跟上面設定的 default 效果一樣
+                //routes1.MapRoute(
+                //    name: "default",
+                //    template: "{controller}/{action}/{id?}",
+                //    defaults: new { controller = "Home", action = "Index" }
+                //);
+            });
+
+            // [Routing]
+            var defaultRouteHandler = new RouteHandler(context =>
+            {
+                var routeValues = context.GetRouteData().Values;
+                return context.Response.WriteAsync($"Route values:{string.Join(", ", routeValues)}");
+            });
+
+            var routeBuilder = new RouteBuilder(app, defaultRouteHandler);
+            // first:xxx 代表將 first後面的xxx賦值給 first 這個route value後面
+            routeBuilder.MapRoute("default", "{first:regex(^(default|home)$)}/{second?}");
+            routeBuilder.MapGet("user/{name}", context =>
+            {
+                var name = context.GetRouteValue("name");
+                return context.Response.WriteAsync($"Get user. name: {name}");
+            });
+            routeBuilder.MapPost("user/{name}", context =>
+            {
+                var name = context.GetRouteValue("name");
+                return context.Response.WriteAsync($"Create user. name: {name}");
+            });
+
+            var routes = routeBuilder.Build();
+            app.UseRouter(routes);
+            # endregion
+
+            // app.UseMvcWithDefaultRoute();
 
             registerAppLifeTime(appLifeTime);
 
