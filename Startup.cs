@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
@@ -18,9 +20,12 @@ namespace dotnetcore_demo
 {
     public class Startup
     {
-        public Startup()
+        private readonly IConfiguration _config;
+
+        public Startup(IConfiguration config)
         {
             Program.Output("Startup Constructor - Called");
+            _config = config;
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -29,6 +34,10 @@ namespace dotnetcore_demo
         {
             Program.Output("ConfigureServices");
             services.AddMvc();
+            services.AddDbContext<MyContext>(options =>
+            {
+                options.UseSqlServer(_config.GetConnectionString("DefaultConnection"));
+            });
 
             # region add single scoped
             services.AddScoped<ISampleScoped, Sample>();
@@ -45,7 +54,8 @@ namespace dotnetcore_demo
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifeTime)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifeTime,
+        MyContext dbContext)
         {
             Program.Output("Configure - Calling");
 
@@ -53,6 +63,10 @@ namespace dotnetcore_demo
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            # region ef
+            dbContext.Database.EnsureCreated();
+            # endregion
 
             # region Url rewrite
             // var rewrite = new RewriteOptions()
@@ -106,23 +120,23 @@ namespace dotnetcore_demo
             // [MVC Routing]
             // app.UseMvc(routes1 =>
             // {
-                // routes1.MapRoute(
-                //     name: "about",
-                //     template: "about",
-                //     defaults: new { controller = "Home", action = "About" }
-                // );
+            // routes1.MapRoute(
+            //     name: "about",
+            //     template: "about",
+            //     defaults: new { controller = "Home", action = "About" }
+            // );
 
-                // routes1.MapRoute(
-                //     name: "default",
-                //     template: "{controller=Home}/{action=Index}/{id?}"
-                // );
+            // routes1.MapRoute(
+            //     name: "default",
+            //     template: "{controller=Home}/{action=Index}/{id?}"
+            // );
 
-                // 跟上面設定的 default 效果一樣
-                //routes1.MapRoute(
-                //    name: "default",
-                //    template: "{controller}/{action}/{id?}",
-                //    defaults: new { controller = "Home", action = "Index" }
-                //);
+            // 跟上面設定的 default 效果一樣
+            //routes1.MapRoute(
+            //    name: "default",
+            //    template: "{controller}/{action}/{id?}",
+            //    defaults: new { controller = "Home", action = "Index" }
+            //);
             // });
 
             // [Routing]
@@ -148,7 +162,7 @@ namespace dotnetcore_demo
 
             // var routes = routeBuilder.Build();
             // app.UseRouter(routes);
-            # endregion
+            #endregion
 
             // app.UseMvcWithDefaultRoute();
 

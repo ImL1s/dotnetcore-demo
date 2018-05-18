@@ -1,0 +1,5 @@
+{
+    "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost,1433; Database=DotnetCoreDemo; User=SA; Password=Aa8707887078"
+}
+}

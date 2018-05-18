@@ -1,18 +1,20 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using dotnetcore_demo.Attributes;
 
 namespace dotnetcore_demo.Model
 {
     public class UserModel
     {
-        [Required]
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int? Id { get; set; }
 
         [EmailAddress]
         public string Email { get; set; }
 
         [RegularExpression(@"\w+")]
+        [Required]
         public string Name { get; set; }
 
         [Phone]

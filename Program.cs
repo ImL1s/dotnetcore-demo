@@ -24,6 +24,10 @@ namespace dotnetcore_demo
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                     .UseWebRoot("public")
+                    .ConfigureAppConfiguration((webHostBuilder, configurationBinder) =>
+                    {
+                        configurationBinder.AddJsonFile("settings.json", optional: true);
+                    })
                     .UseStartup<Startup>()
                     .Build();
 
