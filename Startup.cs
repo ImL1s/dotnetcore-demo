@@ -9,6 +9,7 @@ using dotnetcore_demo.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -52,6 +53,25 @@ namespace dotnetcore_demo
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            # region Url rewrite
+            var rewrite = new RewriteOptions()
+            .AddRewrite("about.aspx", "home/about", skipRemainingRules: true)
+            .AddRewrite("first.aspx", "home/index", skipRemainingRules: true)
+            .AddRewrite("sample.aspx", "sample/index", skipRemainingRules: true);
+
+            // app.UseRewriter(rewrite);
+            # endregion
+
+            #region Url 
+            rewrite
+            .AddRedirect(@"userold/(.*)", "user/test/$1", 301)
+            // TODO 目前使用.aspx無法redirect,待查明
+            .AddRedirect(@"products.aspx?id=(.*)", "user/test/$1", 301)
+            .AddRedirect("userold.aspx?name=(.*)", "user/test/$1", 301);
+
+            app.UseRewriter(rewrite);
+            # endregion
 
             # region Static files example is here.
             // UseDefaultFiles 必須註冊在 UseStaticFiles 之前
@@ -105,28 +125,28 @@ namespace dotnetcore_demo
             });
 
             // [Routing]
-            var defaultRouteHandler = new RouteHandler(context =>
-            {
-                var routeValues = context.GetRouteData().Values;
-                return context.Response.WriteAsync($"Route values:{string.Join(", ", routeValues)}");
-            });
+            // var defaultRouteHandler = new RouteHandler(context =>
+            // {
+            //     var routeValues = context.GetRouteData().Values;
+            //     return context.Response.WriteAsync($"Route values:{string.Join(", ", routeValues)}");
+            // });
 
-            var routeBuilder = new RouteBuilder(app, defaultRouteHandler);
-            // first:xxx 代表將 first後面的xxx賦值給 first 這個route value後面
-            routeBuilder.MapRoute("default", "{first:regex(^(default|home)$)}/{second?}");
-            routeBuilder.MapGet("user/{name}", context =>
-            {
-                var name = context.GetRouteValue("name");
-                return context.Response.WriteAsync($"Get user. name: {name}");
-            });
-            routeBuilder.MapPost("user/{name}", context =>
-            {
-                var name = context.GetRouteValue("name");
-                return context.Response.WriteAsync($"Create user. name: {name}");
-            });
+            // var routeBuilder = new RouteBuilder(app, defaultRouteHandler);
+            // // first:xxx 代表將 first後面的xxx賦值給 first 這個route value後面
+            // routeBuilder.MapRoute("default", "{first:regex(^(default|home)$)}/{second?}");
+            // routeBuilder.MapGet("user/{name}", context =>
+            // {
+            //     var name = context.GetRouteValue("name");
+            //     return context.Response.WriteAsync($"Get user. name: {name}");
+            // });
+            // routeBuilder.MapPost("user/{name}", context =>
+            // {
+            //     var name = context.GetRouteValue("name");
+            //     return context.Response.WriteAsync($"Create user. name: {name}");
+            // });
 
-            var routes = routeBuilder.Build();
-            app.UseRouter(routes);
+            // var routes = routeBuilder.Build();
+            // app.UseRouter(routes);
             # endregion
 
             // app.UseMvcWithDefaultRoute();
@@ -141,14 +161,14 @@ namespace dotnetcore_demo
             // app.UseMiddleware<FirstMiddleware>();
 
             // 使用 extensions 方式註冊 middleware
-            app.UseFirstMiddleware();
+            // app.UseFirstMiddleware();
             # endregion
 
 
-            app.Run(async (context) =>
-            {
-                await context.Response.WriteAsync("Hello World! \r\n");
-            });
+            // app.Run(async (context) =>
+            // {
+            //     await context.Response.WriteAsync("Hello World! \r\n");
+            // });
 
             Program.Output("Configure - Calling");
         }

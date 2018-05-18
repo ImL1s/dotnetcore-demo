@@ -1,3 +1,4 @@
+using dotnetcore_demo.Model;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dotnetcore_demo.Controllers
@@ -7,6 +8,15 @@ namespace dotnetcore_demo.Controllers
     [Route("[controller]")]
     public class UserController : Controller
     {
+        [Route("[action]/{name}")]
+        public IActionResult test(string name)
+        {
+            var model = new UserModel()
+            {
+                Name = name
+            };
+            return Content(model.Name);
+        }
         [Route("")]
         public IActionResult Profile()
         {
