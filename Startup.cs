@@ -1,26 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using dotnetcore_demo.Model;
 using dotnetcore_demo.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.IdentityModel.Tokens;
 
 namespace dotnetcore_demo
 {
     public class Startup
     {
         private readonly IConfiguration _config;
+        private string ConnectionString
+        {
+            get
+            {
+                return _config.GetConnectionString("DefaultConnection");
+            }
+        }
 
         public Startup(IConfiguration config)
         {
@@ -34,9 +46,38 @@ namespace dotnetcore_demo
         {
             Program.Output("ConfigureServices");
             services.AddMvc();
-            services.AddDbContext<MyContext>(options =>
+            Action<DbContextOptionsBuilder> dbSettingAction = (options =>
             {
-                options.UseSqlServer(_config.GetConnectionString("DefaultConnection"));
+                options.UseSqlServer(ConnectionString);
+            });
+
+            // Add Identity
+            // services.AddDbContext<MyContext>(dbSettingAction);
+            services.AddDbContext<ApplicationDbContext>(dbSettingAction);
+            services.AddIdentity<IdentityUser, IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
+
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+            services
+            .AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+
+            })
+            .AddJwtBearer(cfg =>
+            {
+                cfg.RequireHttpsMetadata = false;
+                cfg.SaveToken = true;
+                cfg.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidIssuer = _config["JwtIssuer"],
+                    ValidAudience = _config["JwtIssuer"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtKey"])),
+                    ClockSkew = TimeSpan.Zero // remove delay of token when expire
+                };
             });
 
             # region add single scoped
@@ -54,8 +95,9 @@ namespace dotnetcore_demo
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifeTime,
-        MyContext dbContext)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env,
+        IApplicationLifetime appLifeTime,
+        ApplicationDbContext appDbContext)
         {
             Program.Output("Configure - Calling");
 
@@ -65,7 +107,7 @@ namespace dotnetcore_demo
             }
 
             # region ef
-            dbContext.Database.EnsureCreated();
+            appDbContext.Database.EnsureCreated();
             # endregion
 
             # region Url rewrite
@@ -116,6 +158,7 @@ namespace dotnetcore_demo
             # endregion
 
             # region Routing example is here.
+            app.UseAuthentication();
             app.UseMvcWithDefaultRoute();
             // [MVC Routing]
             // app.UseMvc(routes1 =>
